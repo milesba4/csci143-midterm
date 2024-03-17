@@ -14,8 +14,12 @@
  * so there is no need to do a breakdown of revenue per year.
  */
 
-SELECT 'enter your solution here';
-
+SELECT SUM(amount) FROM 
+payment JOIN customer using (customer_id) 
+JOIN address using (address_id)
+JOIN city using (city_id)
+JOIN country using (country_id)
+WHERE country = 'North Korea';
 
 
 
@@ -32,10 +36,52 @@ SELECT 'enter your solution here';
  * Order the results so that actors generating the most revenue are at the top.
  */
 
-SELECT 'enter your solution here';
-
-
-
+SELECT
+    act.first_name,
+    act.last_name,
+    COALESCE(SUM(pay.amount), 0) AS total_revenue
+FROM
+    actor act
+JOIN
+    film_actor fact ON act.actor_id = fact.actor_id
+LEFT JOIN
+    inventory inv ON fact.film_id = inv.film_id
+LEFT JOIN
+    rental rent ON inv.inventory_id = rent.inventory_id
+LEFT JOIN
+    payment pay ON rent.rental_id = pay.rental_id
+WHERE
+    act.actor_id IN (
+        SELECT DISTINCT fact.actor_id
+        FROM
+            film_actor fact
+        JOIN
+            film fil ON fact.film_id = fil.film_id
+        JOIN
+            film_category fcat ON fil.film_id = fcat.film_id
+        JOIN
+            category cat ON fcat.category_id = cat.category_id
+        WHERE
+            cat.name = 'Family'
+    )
+AND
+    act.actor_id NOT IN (
+        SELECT DISTINCT fact.actor_id
+        FROM
+            film_actor fact
+        JOIN
+            film fil ON fact.film_id = fil.film_id
+        JOIN
+            film_category fcat ON fil.film_id = fcat.film_id
+        JOIN
+            category cat ON fcat.category_id = cat.category_id
+        WHERE
+            cat.name = 'Horror'
+    )
+GROUP BY
+    act.first_name, act.last_name
+ORDER BY
+    total_revenue DESC;
 
 
 
@@ -47,12 +93,51 @@ SELECT 'enter your solution here';
  * but have never co-starred with RUSSEL BACALL in any movie.
  */
 
-SELECT 'enter your solution here';
-
-
-
-
-
+SELECT
+    act.first_name,
+    act.last_name
+FROM
+    actor act
+JOIN
+    film_actor fact ON act.actor_id = fact.actor_id
+LEFT JOIN
+    inventory inv ON fact.film_id = inv.film_id
+LEFT JOIN
+    rental rent ON inv.inventory_id = rent.inventory_id
+LEFT JOIN
+    payment pay ON rent.rental_id = pay.rental_id
+WHERE
+    act.first_name || ' ' || act.last_name != 'RUSSELL BACALL'
+AND
+    act.actor_id NOT IN (
+        SELECT
+            fact2.actor_id
+        FROM
+            film_actor fact1
+        JOIN
+            film_actor fact2 ON fact1.film_id = fact2.film_id
+        WHERE
+            fact1.actor_id = (
+                SELECT
+                    actor_id
+                FROM
+                    actor
+                WHERE
+                    first_name = 'RUSSELL' AND last_name = 'BACALL'
+            )
+    )
+AND
+    act.actor_id IN (
+        SELECT
+            fact.actor_id
+        FROM
+            film_actor fact
+        JOIN
+            film fil ON fact.film_id = fil.film_id
+        WHERE
+            fil.title = 'AGENT TRUMAN'
+    )
+GROUP BY act.first_name, act.last_name;
 
 /* PROBLEM 4:
  *
@@ -68,9 +153,25 @@ SELECT 'enter your solution here';
  * Your results should not contain any duplicate titles.
  */
 
-SELECT 'enter your solution here';
-
-
-
-
-
+SELECT DISTINCT
+    fil.title
+FROM
+    film fil
+JOIN
+    film_actor fact ON fil.film_id = fact.film_id
+JOIN
+    actor act ON fact.actor_id = act.actor_id
+LEFT JOIN
+    inventory inv ON fil.film_id = inv.film_id
+LEFT JOIN
+    rental rent ON inv.inventory_id = rent.inventory_id
+LEFT JOIN
+    customer cust ON rent.customer_id = cust.customer_id
+WHERE
+    fil.title NOT LIKE '%F%'
+AND
+    act.first_name NOT LIKE '%F%' AND act.last_name NOT LIKE '%F%'
+AND
+    (cust.first_name NOT LIKE '%F%' OR cust.first_name IS NULL) AND (cust.last_name NOT LIKE '%F%' OR cust.last_name IS NULL)
+GROUP BY
+    fil.title;
